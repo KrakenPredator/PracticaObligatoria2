@@ -80,9 +80,11 @@ for file in glob.glob('testing_ocr/*.jpg'):
     fim = cv2.imread(file, 0)
     matricula = recortar_mat(fim)
     (x, y, w, h) = matricula
+    #quitar los corchetes para ver la imagen entera
     im = fim[y: y+h, x:x+w]
     gauss = cv2.GaussianBlur(im, (3, 3), 0)
     edgs = cv2.Canny(gauss, 100, 200)
+    #cambiar nombres thresh2 por thresh para probar entre golbal y adaptive
     _, thresh2 = cv2.threshold(im, 150, 255, 0)
     _, thresh = cv2.threshold(im, 200, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     _, contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
