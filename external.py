@@ -53,3 +53,20 @@ def maximizeContrast(imgGrayscale):
 
     return imgGrayscalePlusTopHatMinusBlackHat
 # end function
+
+
+def CannyThreshold(lowThreshold):
+      # just add some colours to edges from original image.
+    return 0
+
+lowThreshold = 0
+max_lowThreshold = 100
+ratio = 3
+kernel_size = 3
+img = cv2.imread('testing_ocr/frontal_46.jpg')
+gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+cv2.namedWindow('canny demo')
+cv2.createTrackbar('Min threshold','canny demo',lowThreshold, max_lowThreshold, CannyThreshold)
+CannyThreshold(100)  # initialization
+if cv2.waitKey(0) == 27:
+    cv2.destroyAllWindows()

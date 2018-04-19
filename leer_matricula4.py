@@ -1,12 +1,11 @@
 import cv2
 import copy
 import numpy as np
-import external
 import glob
 
 RED = (0, 0, 255)
 GREEN = (0, 255, 0)
-ESCALA = 2
+ESCALA = 4
 
 
 def recortar_mat(image):
@@ -27,18 +26,25 @@ def sacarBounding(contornos):
 
 
 def son_igual_altura(lista):
-    listC = []
-    actual = 0
+    listC = set()
+    maxh = 0
+    for elem in lista:
+        h = elem[3]
+        if maxh < h:
+            maxh = h
+
+    actual = maxh
+    print(lista)
+    print(maxh)
     for elem in lista:
         if actual == 0:
             actual = elem[3]
-            listC.append(elem)
+            listC.add(elem)
         else:
             dif = np.abs(actual-elem[3])
-            print(dif)
             actual = elem[3]
-            if dif < 15:
-                listC.append(elem)
+            if dif < .5:
+                listC.add(elem)
     return listC
 
 def ordenado(almacen):
@@ -46,11 +52,39 @@ def ordenado(almacen):
     for ctr in almacen:
         x, y, w, h = ctr
         if w/h < 1:
-            factor = 3
-            if y//factor in rtrn:
-                rtrn[y//factor].append((x, y, w, h, (x*ESCALA, y*ESCALA), (x*ESCALA+w*ESCALA, y*ESCALA+h*ESCALA)))
-            else:
-                rtrn[y//factor] = [(x, y, w, h, (x*ESCALA, y*ESCALA), (x*ESCALA+w*ESCALA, y*ESCALA+h*ESCALA))]
+            factor_max = 10
+            for factor in range(1, factor_max):
+                add = (x, y, w, h, (x*ESCALA, y*ESCALA), (x*ESCALA+w*ESCALA, y*ESCALA+h*ESCALA))
+                if y//factor in rtrn:
+                    rtrn[y//factor].append(add)
+                else:
+                    rtrn[y//factor] = [add]
+    return rtrn
+
+
+def ordenado_tamano(almacen):
+    almc = []
+    for ctr in almacen:
+        almc.append(ctr)
+    almc = son_igual_altura(almc)
+    print(len(almc))
+    rtrn = []
+    for i in range(len(almc)):
+        max = (0, 0, 0, 0)
+        for ctr in almc:
+            x, y, w, h = ctr
+            print(w/h)
+            if w/h < 1:
+                multb = max[2]*max[3]
+                multc = w*h
+                if multb < multc:
+                    max = ctr
+        x, y, w, h = max
+        print(max)
+        add = (x, y, w, h, (x * ESCALA, y * ESCALA), (x * ESCALA + w * ESCALA, y * ESCALA + h * ESCALA))
+        rtrn.append(add)
+        if max != (0, 0, 0, 0):
+            almc.remove(max)
     return rtrn
 
 
@@ -75,22 +109,25 @@ def mostrarTodos(almacen):
     return rtrn
 
 
-joder = 1
+
 for file in glob.glob('testing_ocr/*.jpg'):
+    name = file.split('\\')
     fim = cv2.imread(file, 0)
     matricula = recortar_mat(fim)
     (x, y, w, h) = matricula
     #quitar los corchetes para ver la imagen entera
     im = fim[y: y+h, x:x+w]
-    gauss = cv2.GaussianBlur(im, (3, 3), 0)
-    edgs = cv2.Canny(gauss, 100, 200)
+    #im = cv2.GaussianBlur(im, (5, 5), 0)
     #cambiar nombres thresh2 por thresh para probar entre golbal y adaptive
-    _, thresh2 = cv2.threshold(im, 150, 255, 0)
-    _, thresh = cv2.threshold(im, 200, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    _, contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    _, thresh = cv2.threshold(im, 125, 255, cv2.THRESH_BINARY)
+    adap_thresh = cv2.adaptiveThreshold(im, 255.0, 1, 1, 11, 2)
+    #_, thresh = cv2.threshold(im, 200, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    #detected_edges = cv2.Canny(detected_edges, 100, 300, apertureSize=3)
+    #dst = cv2.bitwise_and(im, im, mask=detected_edges)
+    _, contours, _ = cv2.findContours(adap_thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     imagen = cv2.cvtColor(im, cv2.COLOR_GRAY2BGR)
-    tam = imagen.shape
-    imagen = cv2.resize(imagen, (0, 0), fx=2, fy=2)
+    imagen = cv2.resize(imagen, (0, 0), fx=ESCALA, fy=ESCALA)
     listaCajas = sacarBounding(contours)
     cosas = ordenado(listaCajas)
     boxes = filtradoMapa(cosas)
@@ -102,9 +139,8 @@ for file in glob.glob('testing_ocr/*.jpg'):
         i+=1
         cv2.putText(imagen, str(i), bx[4], cv2.FONT_HERSHEY_PLAIN, 1, color, 1)
         cv2.rectangle(imagen, siz, ider, color, 2)
-    cv2.imwrite('salida/' + str(joder) + 'thresh.jpg', thresh)
-    cv2.imwrite('salida/'+str(joder)+'.jpg', imagen)
-    joder += 1
+    cv2.imwrite('salida/' + name[len(name)-1], imagen)
+    cv2.imwrite('salida/th' + name[len(name)-1], adap_thresh)
     ## Refinar el filtro para que no de tantos datos erróneos, buscar la forma de hacerlo en un solo if
 
 
