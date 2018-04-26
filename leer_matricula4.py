@@ -33,18 +33,10 @@ def son_igual_altura(lista):
         if maxh < h:
             maxh = h
 
-    actual = maxh
-    print(lista)
-    print(maxh)
     for elem in lista:
-        if actual == 0:
-            actual = elem[3]
+        dif = np.abs(maxh-elem[3])
+        if dif < 3:
             listC.add(elem)
-        else:
-            dif = np.abs(actual-elem[3])
-            actual = elem[3]
-            if dif < .5:
-                listC.add(elem)
     return listC
 
 def ordenado(almacen):
@@ -52,13 +44,12 @@ def ordenado(almacen):
     for ctr in almacen:
         x, y, w, h = ctr
         if w/h < 1:
-            factor_max = 10
-            for factor in range(1, factor_max):
-                add = (x, y, w, h, (x*ESCALA, y*ESCALA), (x*ESCALA+w*ESCALA, y*ESCALA+h*ESCALA))
-                if y//factor in rtrn:
-                    rtrn[y//factor].append(add)
-                else:
-                    rtrn[y//factor] = [add]
+            factor = 3
+            add = (x, y, w, h, (x*ESCALA, y*ESCALA), (x*ESCALA+w*ESCALA, y*ESCALA+h*ESCALA))
+            if y//factor in rtrn:
+                rtrn[y//factor].append(add)
+            else:
+                rtrn[y//factor] = [add]
     return rtrn
 
 
@@ -94,9 +85,10 @@ def filtradoMapa(almacen):
     for key in almacen.keys():
         lista = almacen[key]
         listC = son_igual_altura(lista)
-        if len(listC) > max:
+        if len(listC) == 7:
             max = len(listC)
             rtrn = listC
+            return rtrn
     return rtrn
 
 
@@ -125,7 +117,7 @@ for file in glob.glob('testing_ocr/*.jpg'):
 
     #detected_edges = cv2.Canny(detected_edges, 100, 300, apertureSize=3)
     #dst = cv2.bitwise_and(im, im, mask=detected_edges)
-    _, contours, _ = cv2.findContours(adap_thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    _, contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     imagen = cv2.cvtColor(im, cv2.COLOR_GRAY2BGR)
     imagen = cv2.resize(imagen, (0, 0), fx=ESCALA, fy=ESCALA)
     listaCajas = sacarBounding(contours)
@@ -140,7 +132,7 @@ for file in glob.glob('testing_ocr/*.jpg'):
         cv2.putText(imagen, str(i), bx[4], cv2.FONT_HERSHEY_PLAIN, 1, color, 1)
         cv2.rectangle(imagen, siz, ider, color, 2)
     cv2.imwrite('salida/' + name[len(name)-1], imagen)
-    cv2.imwrite('salida/th' + name[len(name)-1], adap_thresh)
+    cv2.imwrite('salida/th' + name[len(name)-1], thresh)
     ## Refinar el filtro para que no de tantos datos erróneos, buscar la forma de hacerlo en un solo if
 
 
